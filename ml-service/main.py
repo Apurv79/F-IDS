@@ -117,14 +117,12 @@ async def unhandled_exception_handler(
     )
 
 
-# API routers will be registered here as modules are implemented.
-#
-# Example later:
-#
-# app.include_router(
-#     prediction_router,
-#     prefix="/api/v1",
-# )
+from api.routes import ai_router, federated_router, prediction_router
+
+# Register API routes
+app.include_router(prediction_router)
+app.include_router(ai_router)
+app.include_router(federated_router)
 
 
 if __name__ == "__main__":

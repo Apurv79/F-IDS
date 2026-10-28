@@ -1,7 +1,6 @@
 """Request and response contracts for ML-based attack detection."""
 
-from typing import Literal
-
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 # Labels agreed for the initial FL-IDS classification task.
@@ -14,19 +13,31 @@ AttackLabel = Literal[
 ]
 
 
-class PredictionRequest(BaseModel):
-    """Features extracted from one HTTP request or event."""
+class RawHttpRequestData(BaseModel):
+    """Raw HTTP request data payload forwarded from Node.js Express."""
 
-    # Key-value features extracted by the feature pipeline.
-    # Values can be numeric, Boolean, or textual at this stage.
-    features: dict[str, str | int | float | bool] = Field(
-        min_length=1,
-        description="Extracted HTTP request features",
+    url: str = Field(description="Target path and query string, e.g. /search?q=test")
+    method: str = Field(default="GET", description="HTTP verb (GET, POST, PUT, DELETE, etc.)")
+    headers: dict[str, str] = Field(default_factory=dict, description="Sanitized HTTP headers (User-Agent, etc.)")
+    body: str | dict[str, Any] = Field(default="", description="Request payload body (string or parsed JSON)")
+    ip_request_rate: float = Field(default=0.0, ge=0.0, description="Requests per minute from client IP (from Redis)")
+    failed_login_count: float = Field(default=0.0, ge=0.0, description="Consecutive failed logins for user/IP")
+
+
+class PredictionRequest(BaseModel):
+    """Prediction request accepted by POST /api/v1/predict.
+
+    Accepts either raw request details (forwarded directly from Node.js)
+    or pre-extracted numeric/textual features.
+    """
+
+    event_id: str | None = Field(default=None, description="Unique idempotency ID from Node.js event bus")
+    raw_request: RawHttpRequestData | None = Field(default=None, description="Raw incoming HTTP event details")
+    features: dict[str, str | int | float | bool] | None = Field(
+        default=None,
+        description="Pre-extracted features if caller extracted them",
     )
-    # Optional identifier from the caller for event correlation.
-    event_id: str | None = None
-    # Version of the model the caller expects to use, if specified.
-    requested_model_version: str | None = None
+    requested_model_version: str | None = Field(default=None, description="Optional target model version")
 
 
 class PredictionResponse(BaseModel):
@@ -34,9 +45,7 @@ class PredictionResponse(BaseModel):
 
     prediction: AttackLabel
     confidence: float = Field(ge=0.0, le=1.0)
-    # Version of the model that actually produced this result.
     model_version: str
-    # Optional scores for individual classes.
     class_probabilities: dict[str, float] | None = None
-    # Correlation ID for tracing this detection through the system.
+    event_id: str | None = None
     request_id: str | None = None

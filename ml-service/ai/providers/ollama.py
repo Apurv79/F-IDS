@@ -11,8 +11,9 @@ class OllamaProvider(BaseAIProvider):
 
     async def generate(self, prompt: str) -> str:
         settings = get_settings()
-        if not settings.ollama_api_key:
-            raise RuntimeError("Ollama API key is not configured")
+        is_cloud = "ollama.com" in settings.ollama_base_url
+        if is_cloud and not settings.ollama_api_key:
+            raise RuntimeError("Ollama Cloud API key is not configured")
         if not settings.ollama_model:
             raise RuntimeError("Ollama model is not configured")
 
