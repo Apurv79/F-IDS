@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # AI providers
     huggingface_api_token: str = ""
     huggingface_model: str = ""
-    ollama_base_url: str = "http://localhost:11434"
+    ollama_base_url: str = "https://ollama.com"
     ollama_model: str = ""
     # API key for hosted Ollama inference.
     # Store the actual secret in .env, not in source code.
