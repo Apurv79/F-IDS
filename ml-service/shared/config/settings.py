@@ -20,12 +20,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # AI providers
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
     huggingface_api_token: str = ""
     huggingface_model: str = ""
     ollama_base_url: str = "https://ollama.com"
     ollama_model: str = ""
-    # API key for hosted Ollama inference.
-    # Store the actual secret in .env, not in source code.
     ollama_api_key: str = ""
 
     # AWS S3 & Cloud Storage
