@@ -45,6 +45,12 @@ ENV/
 .coverage
 htmlcov/
 *.egg-info/
+data/raw/
+data/processed/
+artifacts/
+*.joblib
+*.pkl
+*.model
 
 # Logs, Cache & Temporary Files
 logs/
