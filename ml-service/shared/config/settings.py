@@ -28,9 +28,14 @@ class Settings(BaseSettings):
     # Store the actual secret in .env, not in source code.
     ollama_api_key: str = ""
 
-    # AWS S3 — optional during local development
+    # AWS S3 & Cloud Storage
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
     aws_region: str = "ap-south-1"
+    aws_s3_bucket_name: str = ""
     s3_bucket_name: str = ""
+    aws_s3_prefix: str = "fids ai/"
+    s3_signed_url_expiry: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env",

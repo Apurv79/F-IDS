@@ -212,10 +212,33 @@ class ModelsAdapter:
         return None
 
     async def create_download_url(self, version: str) -> dict:
+        from shared.config import get_settings
+        settings = get_settings()
+        download_url = f"/artifacts/models/{version}/model.joblib"
+        expiry = settings.s3_signed_url_expiry
+
+        if settings.aws_access_key_id and settings.aws_s3_bucket_name:
+            try:
+                import boto3
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=settings.aws_access_key_id,
+                    aws_secret_access_key=settings.aws_secret_access_key,
+                    region_name=settings.aws_region,
+                )
+                key = f"{settings.aws_s3_prefix}models/{version}/model.joblib".strip()
+                download_url = s3_client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": settings.aws_s3_bucket_name, "Key": key},
+                    ExpiresIn=expiry,
+                )
+            except Exception:
+                pass
+
         return {
             "model_version": version,
-            "download_url": f"/artifacts/models/{version}/model.joblib",
-            "expires_in_seconds": 3600,
+            "download_url": download_url,
+            "expires_in_seconds": expiry,
         }
 
 

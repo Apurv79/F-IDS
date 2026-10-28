@@ -21,8 +21,42 @@ class ExplanationService:
         self,
         request: ExplanationRequest,
     ) -> ExplanationResponse:
-        # Limit prompt size to avoid unexpectedly large provider requests.
-        features_text = repr(request.features)[:5000]
+        import hashlib
+        from shared.config import get_settings
+
+        # Sanitize sensitive headers and tokens from features before sending to LLM
+        sanitized_features = {}
+        sensitive_keys = {"authorization", "cookie", "token", "password", "secret", "session"}
+        for k, v in request.features.items():
+            if any(s in k.lower() for s in sensitive_keys):
+                sanitized_features[k] = "[REDACTED]"
+            else:
+                sanitized_features[k] = v
+
+        features_text = repr(sanitized_features)[:4000]
+
+        # Check Redis Cache
+        settings = get_settings()
+        cache_key = None
+        if settings.redis_url:
+            try:
+                import redis
+                r = redis.from_url(settings.redis_url)
+                cache_hash = hashlib.sha256(f"{request.prediction}:{features_text}".encode()).hexdigest()
+                cache_key = f"fids:ai:cache:{cache_hash}"
+                cached = r.get(cache_key)
+                if cached:
+                    import json
+                    c_data = json.loads(cached)
+                    return ExplanationResponse(
+                        explanation=c_data["explanation"],
+                        recommendations=c_data.get("recommendations", []),
+                        provider=f"{c_data.get('provider', 'cache')} (cached)",
+                        degraded=False,
+                    )
+            except Exception:
+                pass
+
         prompt = (
             "Explain this web-security detection for a defensive analyst.\n"
             f"Predicted class: {request.prediction}\n"
@@ -56,6 +90,21 @@ class ExplanationService:
                     "Review targeted parameters against input sanitization rules.",
                     "Verify backend WAF and application database logs.",
                 ]
+
+            if cache_key and not degraded:
+                try:
+                    import json
+                    r.setex(
+                        cache_key,
+                        86400,  # 24 hours TTL
+                        json.dumps({
+                            "explanation": text,
+                            "recommendations": recommendations[:5],
+                            "provider": provider,
+                        }),
+                    )
+                except Exception:
+                    pass
 
             return ExplanationResponse(
                 explanation=text,
