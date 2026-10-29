@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # AI providers
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.5-flash-lite"
     huggingface_api_token: str = ""
     huggingface_model: str = ""
     ollama_base_url: str = "https://ollama.com"
